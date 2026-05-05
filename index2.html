@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Редактор Примитивов</title>
+    <script src="https://unpkg.com/konva@10/konva.min.js"></script>
+    
+</head>
+<body>
+    <div id="container"></div>
+    <button onclick ="spawnCircle()"> добавить круг</button>
+    <button onclick = "spawnRect()">добавить квадрат</button>
+    <button onclick = "spawnTriangle()">добавить треугольник</button> 
+    <script>
+        var stage = new Konva.Stage({
+            container: "container", 
+            width: 900,
+            height: 600,
+        });
+
+        
+        var layer = new Konva.Layer();
+        stage.add(layer);
+
+
+        var transformer = new Konva.Transformer();
+        layer.add(transformer);
+
+        stage.on('click tap', function(e) {
+    if (e.target === stage) {
+        transformer.nodes([]);
+        layer.draw();
+    }
+});
+
+
+        function selectShape(shape){
+            transformer.nodes([shape]);
+            layer.draw();
+        };
+
+       
+
+        
+
+    function spawnCircle(){
+        var randomX = 100 + Math.random() * 300;
+        var randomY = 100 + Math.random() * 300;
+    
+
+    var newCircle = new Konva.Circle({
+        x: randomX,
+        y: randomY,
+        radius: 70,
+        fill: 'red',
+        stroke: 'black',
+        strokeWidth: 4,
+        draggable: true,
+        
+    });
+
+newCircle.on('click', (e) => {
+            e.cancelBubble = true;
+            selectShape(newCircle);
+        });
+
+        layer.add(newCircle);
+        layer.draw();
+}
+function spawnRect(){
+        var randomX = 100 + Math.random() * 300;
+        var randomY = 100 + Math.random() * 300;
+    
+
+    var newRect = new Konva.Rect({
+        x: randomX,
+        y: randomY,
+        height: 80,
+        width: 80,
+        fill: 'red',
+        stroke: 'black',
+        strokeWidth: 4,
+        draggable: true,
+    });
+
+newRect.on('click', (e) => {
+    e.cancelBubble = true;
+    selectShape(newRect);
+});
+
+        layer.add(newRect);
+        layer.draw();
+}
+
+function spawnTriangle(){
+    var randomX = 100 + Math.random() * 500;
+    var randomY = 100 + Math.random() * 500;
+
+    var newTriangle = new Konva.RegularPolygon({
+        x: randomX,
+        y: randomY,
+        sides: 3,
+        radius: 70,
+        fill: 'red',
+        stroke: 'black',
+        strokeWidth: 4,
+        draggable: true,
+    });
+newTriangle.on('click', (e) => {
+    e.cancelBubble = true;
+    selectShape(newTriangle);
+});
+        layer.add(newTriangle);
+        layer.draw();
+}
+
+    </script>
+</body>
+</html>
