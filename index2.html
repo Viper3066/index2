@@ -3,13 +3,15 @@
 <head>
     <title>Редактор Примитивов</title>
     <script src="https://unpkg.com/konva@10/konva.min.js"></script>
-    
 </head>
 <body>
     <div id="container"></div>
-    <button onclick ="spawnCircle()"> добавить круг</button>
-    <button onclick = "spawnRect()">добавить квадрат</button>
-    <button onclick = "spawnTriangle()">добавить треугольник</button> 
+    <button onclick="spawnCircle()">добавить круг</button>
+    <button onclick="spawnRect()">добавить квадрат</button>
+    <button onclick="spawnTriangle()">добавить треугольник</button> 
+    <button onclick="saveMyScene()">сохранить сцену</button>
+    <button onclick="loadMyScene()">загрузить сцену</button>
+
     <script>
         var stage = new Konva.Stage({
             container: "container", 
@@ -17,102 +19,207 @@
             height: 600,
         });
 
-        
         var layer = new Konva.Layer();
         stage.add(layer);
-
 
         var transformer = new Konva.Transformer();
         layer.add(transformer);
 
         stage.on('click tap', function(e) {
-    if (e.target === stage) {
-        transformer.nodes([]);
-        layer.draw();
-    }
-});
-
+            if (e.target === stage) {
+                transformer.nodes([]);
+                layer.draw();
+            }
+        });
 
         function selectShape(shape){
             transformer.nodes([shape]);
             layer.draw();
+        }
+
+
+
+
+
+        function spawnCircle(){
+            var randomX = 100 + Math.random() * 300;
+            var randomY = 100 + Math.random() * 300;
+        
+            var newCircle = new Konva.Circle({
+                x: randomX,
+                y: randomY,
+                radius: 70,
+                fill: 'red',
+                stroke: 'black',
+                strokeWidth: 4,
+                draggable: true,
+            });
+
+            newCircle.on('click', (e) => {
+                e.cancelBubble = true;
+                selectShape(newCircle);
+            });
+
+            layer.add(newCircle);
+            layer.draw();
+        }
+
+        function spawnRect(){
+            var randomX = 100 + Math.random() * 300;
+            var randomY = 100 + Math.random() * 300;
+        
+            var newRect = new Konva.Rect({
+                x: randomX,
+                y: randomY,
+                width: 80,
+                height: 80,
+                fill: 'red',
+                stroke: 'black',
+                strokeWidth: 4,
+                draggable: true,
+            });
+
+            newRect.on('click', (e) => {
+                e.cancelBubble = true;
+                selectShape(newRect);
+            });
+
+            layer.add(newRect);
+            layer.draw();
+        }
+
+        function spawnTriangle(){
+            var randomX = 100 + Math.random() * 500;
+            var randomY = 100 + Math.random() * 500;
+
+            var newTriangle = new Konva.RegularPolygon({
+                x: randomX,
+                y: randomY,
+                sides: 3,
+                radius: 70,
+                fill: 'red',
+                stroke: 'black',
+                strokeWidth: 4,
+                draggable: true,
+            });
+
+            newTriangle.on('click', (e) => {
+                e.cancelBubble = true;
+                selectShape(newTriangle);
+            });
+
+            layer.add(newTriangle);
+            layer.draw();
+        }
+
+
+        function saveMyScene(){
+            var data = [];
+            layer.find('Circle, Rect, RegularPolygon').forEach(function(shape){
+                data.push({
+                    type: shape.getClassName(),
+                    x: shape.x(),
+                    y: shape.y(),
+                    radius: shape.radius ? shape.radius() : undefined,
+                    width: shape.width ? shape.width() : undefined,
+                    height: shape.height ? shape.height() : undefined,
+                    sides: shape.sides ? shape.sides() : undefined,
+                    fill: shape.fill(),
+                    stroke: shape.stroke(),
+                    strokeWidth: shape.strokeWidth()
+                });
+            });
+
+            var json = JSON.stringify(data);
+            
+            var blob = new Blob([json], {type: 'application/json'});
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'Scene.json';
+            link.click();
+            
+        }
+
+function loadMyScene(){
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+
+    input.onchange = function(e){
+        var file = e.target.files[0];  
+        if(!file) return;
+        
+        var reader = new FileReader();
+        reader.onload = function(evt){
+            var data = JSON.parse(evt.target.result);
+
+            
+            transformer.destroy();
+
+            
+            layer.find('Circle, Rect, RegularPolygon').forEach(function(shape){
+                shape.destroy();
+            });
+
+            data.forEach(function(item){
+                var shape;
+
+                if(item.type === 'Circle'){
+                    shape = new Konva.Circle({
+                        x: item.x,
+                        y: item.y,
+                        radius: item.radius,
+                        fill: item.fill,
+                        stroke: item.stroke,
+                        strokeWidth: item.strokeWidth,
+                        draggable: true
+                    });
+                }
+                else if(item.type === 'Rect'){
+                    shape = new Konva.Rect({
+                        x: item.x,
+                        y: item.y,
+                        width: item.width,
+                        height: item.height,
+                        fill: item.fill,
+                        stroke: item.stroke,
+                        strokeWidth: item.strokeWidth,
+                        draggable: true
+                    });
+                }
+                else if(item.type === 'RegularPolygon'){
+                    shape = new Konva.RegularPolygon({
+                        x: item.x,
+                        y: item.y,
+                        sides: 3,
+                        radius: item.radius,
+                        fill: item.fill,
+                        stroke: item.stroke,
+                        strokeWidth: item.strokeWidth,
+                        draggable: true
+                    });
+                }
+
+                if(shape){
+                    shape.on('click', (e) => {
+                        e.cancelBubble = true;
+                        selectShape(shape);
+                    });
+                    layer.add(shape);
+                }
+            });
+            
+            
+            transformer = new Konva.Transformer();
+            layer.add(transformer);
+            
+            layer.draw();
+            
         };
-
-       
-
-        
-
-    function spawnCircle(){
-        var randomX = 100 + Math.random() * 300;
-        var randomY = 100 + Math.random() * 300;
-    
-
-    var newCircle = new Konva.Circle({
-        x: randomX,
-        y: randomY,
-        radius: 70,
-        fill: 'red',
-        stroke: 'black',
-        strokeWidth: 4,
-        draggable: true,
-        
-    });
-
-newCircle.on('click', (e) => {
-            e.cancelBubble = true;
-            selectShape(newCircle);
-        });
-
-        layer.add(newCircle);
-        layer.draw();
+        reader.readAsText(file);
+    };
+    input.click();
 }
-function spawnRect(){
-        var randomX = 100 + Math.random() * 300;
-        var randomY = 100 + Math.random() * 300;
-    
-
-    var newRect = new Konva.Rect({
-        x: randomX,
-        y: randomY,
-        height: 80,
-        width: 80,
-        fill: 'red',
-        stroke: 'black',
-        strokeWidth: 4,
-        draggable: true,
-    });
-
-newRect.on('click', (e) => {
-    e.cancelBubble = true;
-    selectShape(newRect);
-});
-
-        layer.add(newRect);
-        layer.draw();
-}
-
-function spawnTriangle(){
-    var randomX = 100 + Math.random() * 500;
-    var randomY = 100 + Math.random() * 500;
-
-    var newTriangle = new Konva.RegularPolygon({
-        x: randomX,
-        y: randomY,
-        sides: 3,
-        radius: 70,
-        fill: 'red',
-        stroke: 'black',
-        strokeWidth: 4,
-        draggable: true,
-    });
-newTriangle.on('click', (e) => {
-    e.cancelBubble = true;
-    selectShape(newTriangle);
-});
-        layer.add(newTriangle);
-        layer.draw();
-}
-
     </script>
 </body>
 </html>
