@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Редактор Примитивов</title>
+    <script src="https://unpkg.com/konva@10/konva.min.js"></script>
+</head>
+<body>
+    <div id="container"></div>
+    <button class="colorBtn" style = "background:#ff0000" data-color = "#ff0000">Красный</button>
+    <button class="colorBtn" style="background:#00ff00" data-color="#00ff00"> Зеленый</button>
+    <button class="colorBtn" style="background:#0000ff" data-color="#0000ff"> Синий</button>
+    <button class="colorBtn" style="background:#ffff00" data-color="#ffff00"> Желтый</button>
+    <button class="colorBtn" style="background:#ff00ff" data-color="#ff00ff"> Фиолетовый</button>
+    <button class="colorBtn" style="background:#ff6600" data-color="#ff6600"> Оранжевый</button>
+    <button onclick="spawnCircle()">добавить круг</button>
+    <button onclick="spawnRect()">добавить квадрат</button>
+    <button onclick="spawnTriangle()">добавить треугольник</button> 
+    <button onclick="DeleteShape()">удалить фигуру</button>
+    <button onclick="saveMyScene()">сохранить сцену</button>
+    <button onclick="loadMyScene()">загрузить сцену</button>
+    <button onclick="saveToSVG()">экспорт в SVG</button>
+
+    <script>
+        var stage = new Konva.Stage({
+            container: "container", 
+            width: 900,
+            height: 600,
+        });
+
+        var layer = new Konva.Layer();
+        stage.add(layer);
+
+        var transformer = new Konva.Transformer();
+        layer.add(transformer);
+
+        stage.on('click tap', function(e) {
+            if (e.target === stage) {
+                transformer.nodes([]);
+                layer.draw();
+            }
+        });
+
+        function selectShape(shape){
+            transformer.nodes([shape]);
+            layer.draw();
+        }
+
+        var currentColor = '#ff0000';  
+
+        document.querySelectorAll('.colorBtn').forEach(function(btn){
+            btn.onclick = function(){
+                currentColor = this.getAttribute('data-color');
+            }
+        })
+
+        function spawnCircle(){
+            var randomX = 100 + Math.random() * 300;
+            var randomY = 100 + Math.random() * 300;
+        
+            var newCircle = new Konva.Circle({
+                x: randomX,
+                y: randomY,
+                radius: 70,
+                fill: currentColor,
+                stroke: 'black',
+                strokeWidth: 4,
+                draggable: true,
+            });
+
+            newCircle.on('click', (e) => {
+                e.cancelBubble = true;
+                selectShape(newCircle);
+            });
+
+            layer.add(newCircle);
+            layer.draw();
+        }
+
+        function spawnRect(){
+            var randomX = 100 + Math.random() * 300;
+            var randomY = 100 + Math.random() * 300;
+        
+            var newRect = new Konva.Rect({
+                x: randomX,
+                y: randomY,
+                width: 80,
+                height: 80,
+                fill: currentColor,
+                stroke: 'black',
+                strokeWidth: 4,
+                draggable: true,
+            });
+
+            newRect.on('click', (e) => {
+                e.cancelBubble = true;
+                selectShape(newRect);
+            });
+
+            layer.add(newRect);
+            layer.draw();
+        }
+
+        function spawnTriangle(){
+            var randomX = 100 + Math.random() * 500;
+            var randomY = 100 + Math.random() * 500;
+
+            var newTriangle = new Konva.RegularPolygon({
+                x: randomX,
+                y: randomY,
+                sides: 3,
+                radius: 70,
+                fill: currentColor,
+                stroke: 'black',
+                strokeWidth: 4,
+                draggable: true,
+            });
+
+            newTriangle.on('click', (e) => {
+                e.cancelBubble = true;
+                selectShape(newTriangle);
+            });
+
+            layer.add(newTriangle);
+            layer.draw();
+        }
+
+        
+        function DeleteShape(){
+            var selectedShapes = transformer.nodes();
+            if (selectedShapes.length > 0) {
+                selectedShapes[0].destroy();
+                transformer.nodes([]);
+                layer.draw();
+            }
+        }
+
+        function saveMyScene(){
+            var data = [];
+            layer.find('Circle, Rect, RegularPolygon').forEach(function(shape){
+                data.push({
+                    type: shape.getClassName(),
+                    x: shape.x(),
+                    y: shape.y(),
+                    radius: shape.radius ? shape.radius() : null,
+                    width: shape.width ? shape.width() : null,
+                    height: shape.height ? shape.height() : null,
+                    sides: shape.sides ? shape.sides() : null,
+                    fill: shape.fill(),
+                    stroke: shape.stroke(),
+                    strokeWidth: shape.strokeWidth()
+                });
+            });
+
+            var json = JSON.stringify(data);
+            
+            var blob = new Blob([json], {type: 'application/json'});
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'Scene.json';
+            link.click();
+        }
+
+        function loadMyScene(){
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = function(e){
+                var file = e.target.files[0];  
+                if(!file) return;
+                
+                var reader = new FileReader();
+                reader.onload = function(evt){
+                    var data = JSON.parse(evt.target.result);
+                    
+                    transformer.destroy();
+                    
+                    layer.find('Circle, Rect, RegularPolygon').forEach(function(shape){
+                        shape.destroy();
+                    });
+
+                    data.forEach(function(item){
+                        var shape;
+
+                        if(item.type === 'Circle'){
+                            shape = new Konva.Circle({
+                                x: item.x,
+                                y: item.y,
+                                radius: item.radius,
+                                fill: item.fill,
+                                stroke: item.stroke,
+                                strokeWidth: item.strokeWidth,
+                                draggable: true
+                            });
+                        }
+                        else if(item.type === 'Rect'){
+                            shape = new Konva.Rect({
+                                x: item.x,
+                                y: item.y,
+                                width: item.width,
+                                height: item.height,
+                                fill: item.fill,
+                                stroke: item.stroke,
+                                strokeWidth: item.strokeWidth,
+                                draggable: true
+                            });
+                        }
+                        else if(item.type === 'RegularPolygon'){
+                            shape = new Konva.RegularPolygon({
+                                x: item.x,
+                                y: item.y,
+                                sides: item.sides || 3,  
+                                radius: item.radius,
+                                fill: item.fill,
+                                stroke: item.stroke,
+                                strokeWidth: item.strokeWidth,
+                                draggable: true
+                            });
+                        }
+
+                        if(shape){
+                            shape.on('click', (e) => {
+                                e.cancelBubble = true;
+                                selectShape(shape);
+                            });
+                            layer.add(shape);
+                        }
+                    });
+                    
+                    transformer = new Konva.Transformer();
+                    layer.add(transformer);
+                    
+                    layer.draw();
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function saveToSVG() {
+            var shapesData = [];
+            
+            layer.find('Circle, Rect, RegularPolygon').forEach(function(shape) {
+                shapesData.push({
+                    type: shape.getClassName(),
+                    x: shape.x(),
+                    y: shape.y(),
+                    radius: shape.radius ? shape.radius() : null,
+                    width: shape.width ? shape.width() : null,
+                    height: shape.height ? shape.height() : null,
+                    sides: shape.sides ? shape.sides() : null,
+                    fill: shape.fill(),
+                    stroke: shape.stroke(),
+                    strokeWidth: shape.strokeWidth()
+                });
+            });
+            
+            var svg = '<?xml version="1.0" encoding="utf-8"?>\n';
+            svg += '<svg xmlns="http://www.w3.org/2000/svg" ';
+            svg += 'width="900" height="600" viewBox="0 0 900 600">\n';
+            
+            svg += '  <rect width="100%" height="100%" fill="white"/>\n';
+            
+            shapesData.forEach(function(shape) {
+                if (shape.type === 'Circle') {
+                    svg += '  <circle cx="' + shape.x + '" cy="' + shape.y + 
+                           '" r="' + shape.radius + '" fill="' + shape.fill + 
+                           '" stroke="' + shape.stroke + 
+                           '" stroke-width="' + shape.strokeWidth + '"/>\n';
+                }
+                else if (shape.type === 'Rect') {
+                    var x = shape.x - shape.width / 2;
+                    var y = shape.y - shape.height / 2;
+                    svg += '  <rect x="' + x + '" y="' + y + 
+                           '" width="' + shape.width + '" height="' + shape.height + 
+                           '" fill="' + shape.fill + '" stroke="' + shape.stroke + 
+                           '" stroke-width="' + shape.strokeWidth + '"/>\n';
+                }
+                else if (shape.type === 'RegularPolygon') {
+                    var points = [];
+                    var angleStep = (2 * Math.PI) / shape.sides;
+                    var startAngle = -Math.PI / 2;
+                    
+                    for (var i = 0; i < shape.sides; i++) {
+                        var angle = startAngle + i * angleStep;
+                        var px = shape.x + shape.radius * Math.cos(angle);
+                        var py = shape.y + shape.radius * Math.sin(angle);
+                        points.push(px + ',' + py);
+                    }
+                    svg += '  <polygon points="' + points.join(' ') + 
+                           '" fill="' + shape.fill + '" stroke="' + shape.stroke + 
+                           '" stroke-width="' + shape.strokeWidth + '"/>\n';
+                }
+            });
+            
+            svg += '</svg>';
+            
+            var blob = new Blob([svg], {type: 'image/svg+xml'});
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'scene_' + Date.now() + '.svg';
+            link.click();
+        }
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-# Отчет по библиотеке Konva.js
+# Отчет по библиотекам Konva.js
 
 ## 1. Что это?
 
@@ -73,6 +73,35 @@
 | Линия | `Konva.Line` | Рисование линий и ломаных |
 | Текст | `Konva.Text` | Надписи на холсте |
 | Изображение | `Konva.Image` | Картинки на холсте |
+
+
+## 5. Основные отличия
+Перетаскивание фигур
+|Библиотека| Строк кода | Реализация |
+|----------|------------|------------|
+|Fabric.js|	0 строк|	Встроенная поддержка (selectable: true по умолчанию)|
+|Konva.js|	1 строка|	draggable: true в параметрах|
+|Paper.js|	18 строк|	Ручная реализация (onMouseDown/ Drag/ Up)|
+
+Paper.js требует ручного написания всего механизма перетаскивания
+
+
+
+Выделение/трансформация фигур
+
+|Библиотека| Строк кода | Наличие | 
+|----------|------------|-------|
+|Fabric.js|	0 строк|	Встроенный трансформер (уголки, изменение размера)|
+|Konva.js|	~30 строк|	Нужно добавить Transformer, обработчики кликов|
+|Paper.js|	? | нет встроенного трансформера|
+
+Сохранение сцены (JSON)
+
+|Библиотека| Строк кода | Сложность |
+|----------|------------|-----------|
+|Fabric.js|	~15 строк|	Встроенный canvas.toJSON()|
+|Paper.js|	~30 строк|	Ручное сохранение: exportJSON()|
+|Konva.js|	~50 строк|	Полностью ручной парсинг всех свойств|
 
 **Пример создания круга:**
 ```javascript
@@ -275,4 +304,140 @@ function loadMyScene(){
     };
     input.click();
 }
+```
+## 6. Fabric.js
+
+**Пример создания круга:**
+```javascript
+function spawnCircle(){
+
+            var randomLeft = 100 + Math.random() * 300;
+            var randomTop = 100 + Math.random() * 300;
+
+            var newCircle = new fabric.Circle({
+                left: randomLeft,
+                top: randomTop,
+                radius: 70,
+                fill: currentColor,
+                stroke: 'black',
+                strokeWidth: 2,
+
+            })
+            canvas.add(newCircle);
+        }
+```
+**Пример создания квадрата:**
+```javascript
+        function spawnRect(){
+            var randomLeft = 100 + Math.random() * 300;
+            var randomTop = 100 + Math.random() * 300;
+
+            var newRect = new fabric.Rect({
+                left: randomLeft,
+                top: randomTop,
+                width: 100,
+                height: 100,
+                fill: currentColor,
+                stroke: 'black',
+                strokewidth: 2
+
+        });
+        canvas.add(newRect);
+        }
+```
+**Функция loadMyScene() - загружает сцену из JSON файла:**
+```javascript
+function loadMyScene(){
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = function(e){
+                var file = e.target.files[0];
+                if(!file) return;
+                
+                var reader = new FileReader();
+                reader.onload = function(evt){
+                    var data = JSON.parse(evt.target.result);
+                    canvas.loadFromJSON(data, function(){
+                        canvas.renderAll();
+                    });
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+```
+
+## 7. Paper.js
+**Пример создания круга:**
+```javascript
+function spawnCircle() {
+            var randomLeft = 100 + Math.random() * 300;
+            var randomTop = 100 + Math.random() * 300;
+
+            var circle = new paper.Path.Circle({
+                center: new paper.Point(randomLeft, randomTop),
+                radius: 70,
+                fillColor: currentColor,
+                strokeColor: 'black',
+                strokeWidth: 2
+            });
+            setupDragging(circle);
+            items.push({ shape: 'circle', item: circle });
+            paper.view.draw();
+        }
+```
+**Пример создания квадрата:**
+```javascript
+function spawnRect() {
+            var randomLeft = 100 + Math.random() * 300;
+            var randomTop = 100 + Math.random() * 300;
+
+            var rect = new paper.Path.Rectangle({
+                point: new paper.Point(randomLeft, randomTop),
+                size: new paper.Size(100, 100),
+                fillColor: currentColor,
+                strokeColor: 'black',
+                strokeWidth: 2
+            });
+            setupDragging(rect);
+            items.push({ shape: 'rect', item: rect });
+            paper.view.draw();
+        }
+```
+**Функция loadMyScene() - загружает сцену из JSON файла:**
+```javascript
+function loadMyScene() {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+
+                var reader = new FileReader();
+                reader.onload = function(evt) {
+                    items.forEach(function(obj) { obj.item.remove(); });
+                    items = [];
+
+                    var sceneData = JSON.parse(evt.target.result);
+                    sceneData.forEach(function(data) {
+                        var item = new paper.Path();
+                        item.importJSON(data.paperJSON);
+                        item.fillColor = data.fillColor;
+                        item.strokeColor = data.strokeColor;
+                        item.strokeWidth = data.strokeWidth;
+                        item.position = new paper.Point(data.positionX, data.positionY);
+                        setupDragging(item);
+                        items.push({ shape: data.shape, item: item });
+                    });
+
+                    paper.view.draw();
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
 ```

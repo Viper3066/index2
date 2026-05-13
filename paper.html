@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Paper.js</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.17/paper-full.min.js"></script>
+</head>
+<body>
+    <canvas id="canvas" width="900" height="600"></canvas>
+    <button onclick="spawnCircle()">добавить круг</button>
+    <button onclick="spawnRect()">Добавить квадрат</button>
+    <button onclick="spawnTriangle()">Добавить треугольник</button>
+    <button class="colorBtn" style="background:#ff0000" data-color="#ff0000">Красный</button>
+    <button class="colorBtn" style="background:#00ff00" data-color="#00ff00">Зеленый</button>
+    <button class="colorBtn" style="background:#0000ff" data-color="#0000ff">Синий</button>
+    <button onclick="saveMyScene()">сохранить сцену</button>
+    <button onclick="loadMyScene()">загрузить сцену</button>
+    <button onclick="saveAsSVG()">сохранить в SVG</button>
+
+    <script type="text/javascript">
+        paper.setup(document.getElementById('canvas'));
+
+        var currentColor = '#ff0000';
+        var items = [];
+        var isDragging = false;
+        var dragOffset = null;
+
+        document.querySelectorAll('.colorBtn').forEach(function(btn) {
+            btn.onclick = function() {
+                currentColor = this.getAttribute('data-color');
+            };
+        });
+
+        function spawnCircle() {
+            var randomLeft = 100 + Math.random() * 300;
+            var randomTop = 100 + Math.random() * 300;
+
+            var circle = new paper.Path.Circle({
+                center: new paper.Point(randomLeft, randomTop),
+                radius: 70,
+                fillColor: currentColor,
+                strokeColor: 'black',
+                strokeWidth: 2
+            });
+            setupDragging(circle);
+            items.push({ shape: 'circle', item: circle });
+            paper.view.draw();
+        }
+
+        function spawnRect() {
+            var randomLeft = 100 + Math.random() * 300;
+            var randomTop = 100 + Math.random() * 300;
+
+            var rect = new paper.Path.Rectangle({
+                point: new paper.Point(randomLeft, randomTop),
+                size: new paper.Size(100, 100),
+                fillColor: currentColor,
+                strokeColor: 'black',
+                strokeWidth: 2
+            });
+            setupDragging(rect);
+            items.push({ shape: 'rect', item: rect });
+            paper.view.draw();
+        }
+
+        function spawnTriangle() {
+            var randomLeft = 100 + Math.random() * 300;
+            var randomTop = 100 + Math.random() * 300;
+
+            var triangle = new paper.Path({
+                segments: [
+                    new paper.Point(randomLeft, randomTop),
+                    new paper.Point(randomLeft + 70, randomTop),
+                    new paper.Point(randomLeft + 35, randomTop - 70)
+                ],
+                closed: true,
+                fillColor: currentColor,
+                strokeColor: 'black',
+                strokeWidth: 2
+            });
+            setupDragging(triangle);
+            items.push({ shape: 'triangle', item: triangle });
+            paper.view.draw();
+        }
+
+        function setupDragging(item) {
+            item.onMouseDown = function(event) {
+                isDragging = true;
+                dragOffset = item.position.subtract(event.point);
+            };
+
+            item.onMouseDrag = function(event) {
+                if (isDragging) {
+                    item.position = event.point.add(dragOffset);
+                }
+            };
+
+            item.onMouseUp = function() {
+                isDragging = false;
+            };
+        }
+
+        function saveMyScene() {
+            var sceneData = items.map(function(obj) {
+                return {
+                    shape: obj.shape,
+                    paperJSON: obj.item.exportJSON(),
+                    fillColor: obj.item.fillColor.toCSS(true),
+                    strokeColor: obj.item.strokeColor.toCSS(true),
+                    strokeWidth: obj.item.strokeWidth,
+                    positionX: obj.item.position.x,
+                    positionY: obj.item.position.y
+                };
+            });
+
+            var blob = new Blob([JSON.stringify(sceneData)], { type: 'application/json' });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'My_scene.json';
+            link.click();
+        }
+
+        function loadMyScene() {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+
+                var reader = new FileReader();
+                reader.onload = function(evt) {
+                    items.forEach(function(obj) { obj.item.remove(); });
+                    items = [];
+
+                    var sceneData = JSON.parse(evt.target.result);
+                    sceneData.forEach(function(data) {
+                        var item = new paper.Path();
+                        item.importJSON(data.paperJSON);
+                        item.fillColor = data.fillColor;
+                        item.strokeColor = data.strokeColor;
+                        item.strokeWidth = data.strokeWidth;
+                        item.position = new paper.Point(data.positionX, data.positionY);
+                        setupDragging(item);
+                        items.push({ shape: data.shape, item: item });
+                    });
+
+                    paper.view.draw();
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function saveAsSVG() {
+            var svg = paper.project.exportSVG({ asString: true });
+            var blob = new Blob([svg], { type: 'image/svg+xml' });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'My_scene.svg';
+            link.click();
+        }
+
+        paper.view.draw();
+    </script>
+</body>
+</html>
